@@ -1,0 +1,8 @@
+package: api
+generate:
+  - types
+  - skip-prune
+  - server
+  - spec
+import-mapping:
+  dummy/dummy-openapi.yaml: github.com/RaviChandarkolla/go-echo-containerisation/services/system/api/dummy

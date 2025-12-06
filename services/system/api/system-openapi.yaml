@@ -1,0 +1,67 @@
+openapi: 3.0.1
+info:
+  title: Golang echo containerisation project
+  description: OpenAPI specification for go-echo-containerisation project
+  version: 1.0.0
+
+
+servers:
+  - url: http://localhost:8001/
+
+paths:
+  /openapi:
+    get:
+      summary: OpenAPI specification
+      description: OpenAPI specification
+      operationId: GetOpenAPI
+      tags:
+        - System
+      responses:
+        200:
+          description: OpenAPI specification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpenAPIResponse"
+
+  /dummyApi:
+    post:
+      summary: dummy api
+      operationId: DummyAPI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DummyAPIRequest"
+      response:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DummyAPIResponse"
+
+
+components:
+  schemas:
+    OpenAPIResponse:
+      type: object
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+      required:
+        - code
+        - message
+
+    DummyAPIRequest:
+      type: object
+      $ref: 'dummy/dummy-openapi.yaml#/components/schemas/DummyAPIRequest'
+
+    DummyAPIResponse:
+      type: object         

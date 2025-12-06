@@ -1,0 +1,11 @@
+version: '3.7'
+
+
+services:
+ system-feature:
+   build:
+     context: .
+     dockerfile: services/system/Dockerfile
+   container_name: system
+   ports:
+     - "8001:8001"

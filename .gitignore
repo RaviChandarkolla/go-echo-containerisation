@@ -1,0 +1,8 @@
+# go code-gen
+# openapi
+**/*.gen.go
+# mockery
+**/mocks/**/*.go
+**/mock_*.go
+# go protobuf
+**/*.pb.g
