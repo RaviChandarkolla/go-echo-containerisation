@@ -60,8 +60,7 @@ components:
         - message
 
     DummyAPIRequest:
-      type: object
       $ref: 'dummy/dummy-openapi.yaml#/components/schemas/DummyAPIRequest'
 
     DummyAPIResponse:
-      type: object         
+      $ref: 'dummy/dummy-openapi.yaml#/components/schemas/DummyAPIRequest'

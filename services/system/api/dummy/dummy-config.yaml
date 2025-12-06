@@ -1,0 +1,7 @@
+package: api
+generate:
+  - types
+  - skip-prune
+  - spec
+import-mapping:
+  ../system-openapi.yaml: github.com/RaviChandarkolla/go-echo-containerisation/services/system/api

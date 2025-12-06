@@ -10,13 +10,12 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/deepmap/oapi-codegen/pkg/middleware"
-	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 
 	openapi "github.com/RaviChandarkolla/go-echo-containerisation/services/system/api"
-
 	api2 "github.com/RaviChandarkolla/go-echo-containerisation/services/system/internal/api"
+	echomiddleware "github.com/oapi-codegen/echo-middleware"
 )
 
 var (
@@ -36,7 +35,6 @@ func GetEnvIntParam(param string, dflt int) int {
 }
 
 func main() {
-	openapi3.DefineStringFormat("uuid", openapi3.FormatOfStringForUUIDOfRFC4122)
 	swagger, err := openapi.GetSwagger()
 	if err != nil {
 		fmt.Printf("error loading openapi spec: %s\n", err)
@@ -45,17 +43,25 @@ func main() {
 
 	e := echo.New()
 	// validate requests against schema
-	e.Use(middleware.OapiRequestValidator(swagger))
+	validatorOptions := &echomiddleware.Options{
+		SilenceServersWarning: true,
+	}
+	e.Use(middleware.Logger())
+	e.Use(echomiddleware.OapiRequestValidatorWithOptions(swagger, validatorOptions))
 	dummyAPI := api2.NewServer()
 	openapi.RegisterHandlers(e, dummyAPI)
 
 	serverAddr := fmt.Sprintf(":%d", *port)
 	wg := sync.WaitGroup{}
+	wg.Add(1)
 
 	// start API server
 	go func() {
 		defer wg.Done()
+		e.Logger.Infof("Starting server on %s", serverAddr)
 		e.Logger.Fatal(e.Start(serverAddr))
 	}()
+
+	wg.Wait()
 
 }
