@@ -31,3 +31,7 @@ require (
 	golang.org/x/time v0.11.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/RaviChandarkolla/go-echo-containerisation/services/system/api => ./services/system/api
+
+replace github.com/RaviChandarkolla/go-echo-containerisation/services/system/internal/api => ./services/system/internal/api
