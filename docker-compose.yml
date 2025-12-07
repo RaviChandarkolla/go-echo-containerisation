@@ -2,10 +2,19 @@ version: '3.7'
 
 
 services:
- system-feature:
-   build:
-     context: .
-     dockerfile: services/system/Dockerfile
-   container_name: system
-   ports:
-     - "8001:8001"
+    system-feature:
+        build:
+          context: .
+          dockerfile: services/system/Dockerfile
+        container_name: system
+        ports:
+          - "8001:8001"
+  
+
+    ubuntu-server:
+      build:
+        context: .
+        dockerfile: Dockerfile.ubuntu
+      container_name: ubuntu-server
+      ports:
+        - "8002:8002"

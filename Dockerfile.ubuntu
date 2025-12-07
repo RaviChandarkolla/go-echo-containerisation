@@ -1,0 +1,15 @@
+FROM ubuntu:24.04
+
+# Install essentials + netcat for port testing
+RUN apt-get update && apt-get install -y \
+    curl wget netcat-traditional iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create simple HTTP server script (optional)
+RUN echo '#!/bin/bash\nwhile true; do echo "HTTP/1.1 200 OK\n\nUbuntu container on port 8080!"; done | nc -l 8080' > /server.sh \
+    && chmod +x /server.sh
+
+EXPOSE 8080
+WORKDIR /app
+
+CMD ["/server.sh"]
