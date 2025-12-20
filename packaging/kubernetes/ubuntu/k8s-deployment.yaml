@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: system-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: system-service
+  template:
+    metadata:
+      labels:
+        app: system-service
+    spec:
+      containers:
+      - name: system-service
+        image: ravichandarkolla/go-echo-containerisation-system-feature:latest
+        ports:
+        - containerPort: 8001
+        imagePullPolicy: Always

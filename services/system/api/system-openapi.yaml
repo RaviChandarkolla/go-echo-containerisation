@@ -34,8 +34,8 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/DummyAPIRequest"
-      response:
-        200:
+      responses:
+        '200':
           content:
             application/json:
               schema:
