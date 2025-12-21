@@ -89,6 +89,7 @@ func placeOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3. Send the bytes to kafka
+	log.Println(order.OrderType + " order received for " + order.CustomerName)
 	err = PushOrderToQueue(order.OrderType, orderInBytes, order.CustomerName)
 	if err != nil {
 		log.Println(err)

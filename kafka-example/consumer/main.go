@@ -1,87 +1,89 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/IBM/sarama"
 )
 
 func main() {
-
-	topic := "coffee_orders"
-	msgCnt := 0
-
-	// 1. Create a new consumer and start it.
-	worker, err := ConnectConsumer([]string{"localhost:9092"})
+	// ✅ SEPARATE consumers per topic
+	coffeeWorker, err := ConnectConsumer([]string{"localhost:9092"})
 	if err != nil {
 		panic(err)
 	}
+	defer coffeeWorker.Close()
 
-	consumer, err := worker.ConsumePartition(topic, 0, sarama.OffsetOldest)
+	teaWorker, err := ConnectConsumer([]string{"localhost:9092"})
 	if err != nil {
 		panic(err)
 	}
+	defer teaWorker.Close()
 
-	teaConsumer, err := worker.ConsumePartition("tea_orders", 0, sarama.OffsetOldest)
-	if err != nil {
-		panic(err)
-	}
+	fmt.Println("Consumers started (coffee_orders[0], tea_orders[0])")
 
-	fmt.Println("Consumer started ")
-
-	// 2. Handle OS signals - used to stop the process.
+	// ✅ Proper signal handling with context
+	ctx, cancel := context.WithCancel(context.Background())
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
-
-	// 3. Create a Goroutine to run the consumer / worker.
-	coffeeDone := make(chan struct{})
-	teaDone := make(chan struct{})
 	go func() {
-		for {
-			select {
-			case err := <-consumer.Errors():
-				fmt.Println(err)
-			case msg := <-consumer.Messages():
-				msgCnt++
-				fmt.Printf("Received order Count %d: | Topic(%s) | Message(%s) \n", msgCnt, string(msg.Topic), string(msg.Value))
-				order := string(msg.Value)
-				fmt.Printf("Brewing coffee for order: %s\n", order)
-			case <-sigchan:
-				fmt.Println("Interrupt is detected")
-				coffeeDone <- struct{}{}
-			}
-		}
+		<-sigchan
+		fmt.Println("Shutdown signal received")
+		cancel()
 	}()
 
-	go func() {
-		for {
-			select {
-			case err := <-teaConsumer.Errors():
-				fmt.Println(err)
-			case msg := <-teaConsumer.Messages():
-				msgCnt++
-				fmt.Printf("Received order Count %d: | Topic(%s) | Message(%s) \n", msgCnt, string(msg.Topic), string(msg.Value))
-				order := string(msg.Value)
-				fmt.Printf("Brewing tea for order: %s\n", order)
-			case <-sigchan:
-				fmt.Println("Interrupt is detected")
-				teaDone <- struct{}{}
-			}
+	var wg sync.WaitGroup
+	var msgCnt int32
+
+	// helper to start consumers for all partitions of a topic
+	startTopic := func(consumer sarama.Consumer, topic, label string) {
+		partitions, err := consumer.Partitions(topic)
+		if err != nil {
+			fmt.Printf("%s: error fetching partitions: %v\n", label, err)
+			return
 		}
-	}()
-
-	<-coffeeDone
-	<-teaDone
-	fmt.Println("Processed", msgCnt, "messages")
-
-	// 4. Close the consumer on exit.
-	if err := worker.Close(); err != nil {
-		panic(err)
+		if len(partitions) == 0 {
+			fmt.Printf("%s: no partitions for topic %s\n", label, topic)
+			return
+		}
+		for _, p := range partitions {
+			pc, err := consumer.ConsumePartition(topic, p, sarama.OffsetOldest)
+			if err != nil {
+				fmt.Printf("%s: failed to consume partition %d: %v\n", label, p, err)
+				continue
+			}
+			wg.Add(1)
+			go func(pc sarama.PartitionConsumer, partition int32, lbl string) {
+				defer wg.Done()
+				defer pc.Close()
+				for {
+					select {
+					case <-ctx.Done():
+						fmt.Printf("%s consumer partition %d shutting down\n", lbl, partition)
+						return
+					case err := <-pc.Errors():
+						fmt.Printf("%s error (partition %d): %v\n", lbl, partition, err)
+					case msg := <-pc.Messages():
+						cnt := atomic.AddInt32(&msgCnt, 1)
+						fmt.Printf("%s #%d (topic=%s partition=%d): %s\n", lbl, cnt, msg.Topic, msg.Partition, string(msg.Value))
+					}
+				}
+			}(pc, p, label)
+		}
 	}
 
+	// start consumers for all partitions of each topic
+	startTopic(coffeeWorker, "coffee_orders", "Coffee")
+	startTopic(teaWorker, "tea_orders", "Tea")
+
+	wg.Wait()
+	fmt.Println("Processed", msgCnt, "messages")
 }
 
 func ConnectConsumer(brokers []string) (sarama.Consumer, error) {
