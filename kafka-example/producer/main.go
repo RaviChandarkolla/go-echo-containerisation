@@ -11,7 +11,8 @@ import (
 // Order struct
 type Order struct {
 	CustomerName string `json:"customer_name"`
-	CoffeeType   string `json:"coffee_type"`
+	DrinkType    string `json:"drink_type"`
+	OrderType    string `json:"order_type"`
 }
 
 func main() {
@@ -21,6 +22,9 @@ func main() {
 
 func ConnectProducer(brokers []string) (sarama.SyncProducer, error) {
 	config := sarama.NewConfig()
+	config.Producer.Partitioner = sarama.NewHashPartitioner // ✅ Key-based hashing (default)
+	// config.Producer.Partitioner = sarama.NewRoundRobinPartitioner  // Round-robin
+	// config.Producer.Partitioner = sarama.NewRandomPartitioner     // Random
 	config.Producer.Return.Successes = true
 	config.Producer.RequiredAcks = sarama.WaitForAll
 	config.Producer.Retry.Max = 5
@@ -28,7 +32,7 @@ func ConnectProducer(brokers []string) (sarama.SyncProducer, error) {
 	return sarama.NewSyncProducer(brokers, config)
 }
 
-func PushOrderToQueue(topic string, message []byte) error {
+func PushOrderToQueue(topic string, message []byte, partitionKey string) error {
 	brokers := []string{"localhost:9092"}
 	// Create connection
 	producer, err := ConnectProducer(brokers)
@@ -41,6 +45,7 @@ func PushOrderToQueue(topic string, message []byte) error {
 	// Create a new message
 	msg := &sarama.ProducerMessage{
 		Topic: topic,
+		Key:   sarama.StringEncoder(partitionKey),
 		Value: sarama.StringEncoder(message),
 	}
 
@@ -84,7 +89,7 @@ func placeOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 3. Send the bytes to kafka
-	err = PushOrderToQueue("coffee_orders", orderInBytes)
+	err = PushOrderToQueue(order.OrderType, orderInBytes, order.CustomerName)
 	if err != nil {
 		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

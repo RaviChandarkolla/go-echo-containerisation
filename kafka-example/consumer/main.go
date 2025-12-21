@@ -25,6 +25,11 @@ func main() {
 		panic(err)
 	}
 
+	teaConsumer, err := worker.ConsumePartition("tea_orders", 0, sarama.OffsetOldest)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Println("Consumer started ")
 
 	// 2. Handle OS signals - used to stop the process.
@@ -32,7 +37,8 @@ func main() {
 	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
 
 	// 3. Create a Goroutine to run the consumer / worker.
-	doneCh := make(chan struct{})
+	coffeeDone := make(chan struct{})
+	teaDone := make(chan struct{})
 	go func() {
 		for {
 			select {
@@ -45,12 +51,30 @@ func main() {
 				fmt.Printf("Brewing coffee for order: %s\n", order)
 			case <-sigchan:
 				fmt.Println("Interrupt is detected")
-				doneCh <- struct{}{}
+				coffeeDone <- struct{}{}
 			}
 		}
 	}()
 
-	<-doneCh
+	go func() {
+		for {
+			select {
+			case err := <-teaConsumer.Errors():
+				fmt.Println(err)
+			case msg := <-teaConsumer.Messages():
+				msgCnt++
+				fmt.Printf("Received order Count %d: | Topic(%s) | Message(%s) \n", msgCnt, string(msg.Topic), string(msg.Value))
+				order := string(msg.Value)
+				fmt.Printf("Brewing tea for order: %s\n", order)
+			case <-sigchan:
+				fmt.Println("Interrupt is detected")
+				teaDone <- struct{}{}
+			}
+		}
+	}()
+
+	<-coffeeDone
+	<-teaDone
 	fmt.Println("Processed", msgCnt, "messages")
 
 	// 4. Close the consumer on exit.
