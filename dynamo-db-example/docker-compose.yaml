@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8000:8000"
+    command: -jar DynamoDBLocal.jar -sharedDb -inMemory
+
+  go-app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DYNAMODB_TABLE=local-table
+      - DYNAMODB_ENDPOINT=http://dynamodb:8000
+    depends_on:
+      - dynamodb

@@ -1,0 +1,20 @@
+# Terminal 1: DynamoDB Local
+docker run -d -p 8000:8000 --name dynamodb amazon/dynamodb-local
+
+# Terminal 2: Build & Run
+docker build -t dynamodb-go-app .
+docker run -d -p 8080:8080 -e DYNAMODB_TABLE="local-table" -e AWS_ENDPOINT_URL="http://host.docker.internal:8000" --add-host=host.docker.internal:host-gateway dynamodb-go-app
+
+# Test
+curl -X POST http://localhost:8080/items -H "Content-Type: application/json" -d '{"id":"user1","score":100}'
+
+curl http://localhost:8080/items/user1
+
+# Deploy
+minikube start
+docker build -t dynamodb-go-app:latest .
+docker tag dynamodb-go-app:latest localhost:5000/dynamodb-go-app:latest
+minikube image load localhost:5000/dynamodb-go-app:latest
+kubectl apply -f dynamodb-deployment.yaml
+kubectl port-forward svc/dynamodb-service 8080:80
+curl -X POST http://localhost:8080/items -d '{"id":"k8s-test","score":42}'
