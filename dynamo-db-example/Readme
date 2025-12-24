@@ -42,8 +42,7 @@ aws dynamodb create-table \
   --endpoint-url http://dynamodb:8000
 
 # =============================================#
-# Local Secondary Index example
-#examples. these needs to be run inside the dynamodb-cli container
+# Local Secondary Index example. these needs to be run inside the dynamodb-cli container
 aws dynamodb create-table \
   --table-name users \
   --key-schema AttributeName=id,KeyType=HASH AttributeName=timestamp,KeyType=RANGE \
