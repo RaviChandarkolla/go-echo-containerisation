@@ -1,0 +1,26 @@
+# 1. Local test
+docker-compose up -d --build
+
+# Test API
+curl -X POST http://localhost:8080/score \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":"alice"}'
+
+curl http://localhost:8080/leaderboard
+
+# 2. Build & Push Docker image
+docker build -t yourusername/leaderboard:latest .
+docker push yourusername/leaderboard:latest
+
+# 3. Minikube setup
+minikube start
+eval $(minikube docker-env)
+
+# 4. Deploy to Kubernetes
+kubectl apply -f redis-deployment.yaml
+kubectl apply -f app-deployment.yaml
+
+# 5. Access
+minikube service leaderboard-service --url
+
+#=======================================================================#
