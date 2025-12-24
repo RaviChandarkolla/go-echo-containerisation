@@ -14,3 +14,14 @@ services:
       - DYNAMODB_ENDPOINT=http://dynamodb:8000
     depends_on:
       - dynamodb
+
+  dynamodb-cli:
+    image: amazon/aws-cli
+    entrypoint: sh  # ✅ OVERRIDES aws ENTRYPOINT
+    command: -c "sleep 3600"
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=dummy
+      - AWS_SECRET_ACCESS_KEY=dummy
+    depends_on: [dynamodb]
+    networks: [default]
