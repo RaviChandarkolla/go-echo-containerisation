@@ -24,3 +24,20 @@ kubectl apply -f app-deployment.yaml
 minikube service leaderboard-service --url
 
 #=======================================================================#
+
+# Redis commands
+# 1. See all keys
+KEYS *
+
+# 2. Leaderboard (ZSET)
+ZRANGE leaderboard 0 -1 WITHSCORES
+
+# 3. User scores
+GET score:alice
+GET score:bob
+
+# 4. Pretty print
+ZRANGE leaderboard 0 -1 WITHSCORES | xargs -L 1 echo
+
+# 5. Exit
+QUIT
